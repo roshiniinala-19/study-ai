@@ -4,9 +4,9 @@ from io import BytesIO
 import numpy as np
 import streamlit as st
 from dotenv import load_dotenv
-from openai import OpenAI
 from pypdf import PdfReader
 from sentence_transformers import SentenceTransformer
+from google import genai
 
 
 # -----------------------------
@@ -162,15 +162,15 @@ def search_chunks(query, chunks, top_k=5):
 # Generate grounded answer
 # -----------------------------
 def generate_answer(query, retrieved_chunks):
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("GEMINI_API_KEY")
 
-    if not api_key or api_key == "YOUR_API_KEY_HERE":
+    if not api_key:
         return (
-            "Your OpenAI API key is not configured yet. "
-            "Add it to the .env file and restart the app."
+            "Gemini API key is not configured. "
+            "Add GEMINI_API_KEY to your Streamlit secrets."
         )
 
-    client = OpenAI(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
     context_parts = []
 
@@ -197,10 +197,11 @@ Rules:
 5. Keep the answer reasonably concise.
 """
 
-    response = client.responses.create(
-        model=os.getenv("OPENAI_MODEL", "gpt-6-luna"),
-        instructions=instructions,
-        input=f"""
+    response = client.models.generate_content(
+        model="gemini-3-flash-preview",
+        contents=f"""
+{instructions}
+
 DOCUMENT CONTEXT:
 
 {context}
@@ -211,7 +212,7 @@ USER QUESTION:
 """,
     )
 
-    return response.output_text
+    return response.text
 
 
 # -----------------------------
